@@ -5,7 +5,7 @@ CONFIGFOLDER='/root/.fdreserve'
 COIN_DAEMON='/usr/local/bin/fdreserved'
 COIN_CLI='/usr/local/bin/fdreserve-cli'
 #64 bit only
-COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.1/fdr-v2.1.1-linux.tar.gz'
+COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.2/fdr-v2.1.2-linux.tar.gz'
 COIN_PATH='/usr/local/bin/'
 COIN_PATHPART='fdr-v2.1.1-linux/bin'
 COIN_NAME='FDReserve'
@@ -356,10 +356,6 @@ function important_information() {
  fi
  echo -e "VPS_IP:PORT ${RED}$NODEIP:$COIN_PORT${NC}"
  echo -e "MASTERNODE PRIVATEKEY is: ${RED}$COINKEY${NC}"
- if [[ -n $SENTINEL_REPO  ]]; then
-  echo -e "${RED}Sentinel${NC} is installed in ${RED}$CONFIGFOLDER/sentinel${NC}"
-  echo -e "Sentinel logs is: ${RED}$CONFIGFOLDER/sentinel.log${NC}"
- fi
  echo -e "Check if $COIN_NAME is running by using the following command:\n${RED}ps -ef | grep $COIN_DAEMON | grep -v grep${NC}"
  echo -e "================================================================================"
 }
