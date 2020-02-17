@@ -7,6 +7,7 @@ COIN_PATH='/usr/local/bin/'
 COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.2/fdr-v2.1.2-linux64.tar.gz'
 COIN_PATHPART='fdr-v2.1.2-linux/bin'
 COIN_DAEMON="fdreserved"
+COIN_CLI="fdreserve-cli"
 COIN_NAME='FDReserve'
 COIN_PORT=12474
 
@@ -132,7 +133,7 @@ case "\$1" in
    sleep 5
    ;;
  stop)
-   $COIN_PATH/$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop 
+   $COIN_PATH/$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop
    ;;
  restart)
    $COIN_CLI stop
@@ -265,7 +266,7 @@ fi
 }
 
 function checks() {
- detect_ubuntu 
+ detect_ubuntu
 if [[ $EUID -ne 0 ]]; then
    echo -e "${RED}$0 must be run as root.${NC}"
    exit 1
@@ -377,7 +378,7 @@ function setup_node() {
     configure_systemd
   else
     configure_startup
-  fi    
+  fi
 }
 
 
