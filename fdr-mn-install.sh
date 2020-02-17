@@ -2,12 +2,11 @@
 
 CONFIG_FILE='fdreserve.conf'
 CONFIGFOLDER='/root/.fdreserve'
-COIN_DAEMON='/usr/local/bin/fdreserved'
-COIN_CLI='/usr/local/bin/fdreserve-cli'
-#64 bit only
-COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.2/fdr-v2.1.2-linux.tar.gz'
 COIN_PATH='/usr/local/bin/'
-COIN_PATHPART='fdr-v2.1.1-linux/bin'
+#64 bit only
+COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.2/fdr-v2.1.2-linux64.tar.gz'
+COIN_PATHPART='fdr-v2.1.2-linux/bin'
+COIN_DAEMON="fdreserved"
 COIN_NAME='FDReserve'
 COIN_PORT=12474
 
@@ -46,11 +45,11 @@ function download_node() {
   wget --progress=bar:force $COIN_TGZ 2>&1 | progressfilt
   compile_error
   COIN_ZIP=$(echo $COIN_TGZ | awk -F'/' '{print $NF}')
-  tar xvzf $COIN_ZIP >/dev/null 2>&1
-  compile_error
-  cp fdreserved fdreserve-cli /usr/local/bin
+  tar zxf $COIN_ZIP >/dev/null 2>&1
   compile_error
   chmod +x $COIN_DAEMON $COIN_CLI
+  cp -p $COIN_DAEMON $COIN_CLI $COIN_PATH/
+  compile_error
   rm -f $COIN_ZIP >/dev/null 2>&1
   cd ~ >/dev/null
   rm -rf $TMP_FOLDER >/dev/null 2>&1
@@ -69,9 +68,10 @@ function compile_node() {
   tar xvzf $COIN_ZIP >/dev/null 2>&1
   compile_error
   rm -f $COIN_ZIP >/dev/null 2>&1
-  cp excl* /usr/local/bin
-  compile_error
   strip $COIN_DAEMON $COIN_CLI
+  chmod +x $COIN_DAEMON $COIN_CLI
+  cp -p $COIN_DAEMON $COIN_CLI $COIN_PATH/
+  compile_error
   cd -
   rm -rf $TMP_FOLDER >/dev/null 2>&1
   clear
@@ -87,8 +87,8 @@ User=root
 Group=root
 Type=forking
 #PIDFile=$CONFIGFOLDER/$COIN_NAME.pid
-ExecStart=$COIN_DAEMON -daemon -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER
-ExecStop=-$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop
+ExecStart=$COIN_PATH/$COIN_DAEMON -daemon -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER
+ExecStop=-$COIN_PATH/$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop
 Restart=always
 PrivateTmp=true
 TimeoutStopSec=60s
@@ -128,16 +128,16 @@ function configure_startup() {
 ### END INIT INFO
 case "\$1" in
  start)
-   $COIN_DAEMON -daemon
+   $COIN_PATH/$COIN_DAEMON -daemon -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER
    sleep 5
    ;;
  stop)
-   $COIN_CLI stop
+   $COIN_PATH/$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop 
    ;;
  restart)
    $COIN_CLI stop
    sleep 10
-   $COIN_DAEMON -daemon
+   $COIN_PATH/$COIN_DAEMON -daemon -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER
    ;;
  *)
    echo "Usage: $COIN_NAME {start|stop|restart}" >&2
@@ -174,20 +174,26 @@ function create_key() {
   echo -e "Enter your ${RED}$COIN_NAME Masternode Private Key${NC}.\nLeave it blank to generate a new ${RED}$COIN_NAME Masternode Private Key${NC} for you:"
   read -e COINKEY
   if [[ -z "$COINKEY" ]]; then
-  $COIN_DAEMON -daemon
-  sleep 30
-  if [ -z "$(ps axo cmd:100 | grep $COIN_DAEMON)" ]; then
-   echo -e "${RED}$COIN_NAME server couldn not start. Check /var/log/syslog for errors.{$NC}"
-   exit 1
-  fi
-  COINKEY=$($COIN_CLI masternode genkey)
-  if [ "$?" -gt "0" ];
-    then
-    echo -e "${RED}Wallet not fully loaded. Let us wait and try again to generate the Private Key${NC}"
+    $COIN_PATH/$COIN_DAEMON -daemon
     sleep 30
-    COINKEY=$($COIN_CLI masternode genkey)
-  fi
-  $COIN_CLI stop
+    if [ -z "$(ps axo cmd:100 | grep $COIN_DAEMON)" ]; then
+      echo -e "${RED}$COIN_NAME server couldn't not start. Check /var/log/syslog for errors.{$NC}"
+      exit 1
+    fi
+    COINKEY=$($COIN_PATH/$COIN_CLI masternode genkey)
+    if [ "$?" -gt "0" ];
+      then
+      echo -e "${RED}Wallet not fully loaded. Let us wait for 30s and try again to generate the Private Key${NC}"
+      sleep 30
+      COINKEY=$($COIN_PATH/$COIN_CLI masternode genkey)
+      if [ "$?" -gt "0" ];
+      then
+        echo -e "${RED}Wallet not fully loaded. Let us wait for another 30s and try again to generate the Private Key${NC}"
+        sleep 30
+        COINKEY=$($COIN_PATH/$COIN_CLI masternode genkey)
+      fi
+    fi
+  $COIN_PATH/$COIN_CLI stop
 fi
 clear
 }
@@ -265,7 +271,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-if [ -n "$(pidof $COIN_DAEMON)" ] || [ -e "$COIN_DAEMOM" ] ; then
+if [ -n "$(pidof $COIN_PATH/$COIN_DAEMON)" ] || [ -e "$COIN_PATH/$COIN_DAEMOM" ] ; then
   echo -e "${RED}$COIN_NAME is already installed.${NC}"
   exit 1
 fi
