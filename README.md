@@ -1,7 +1,7 @@
 # FDReserve coin masternode install script
 
 Shell script to install a FDReserve Masternode on a Linux server running Ubuntu 14.04,16.04 or 18.04. Use it on your own risk.
-This script will install version 2.1.1
+This script will install version 2.1.2
 <hr>
 <h2>VPS installation:</h2>
 Login to vps as root then tyoe the following commands
