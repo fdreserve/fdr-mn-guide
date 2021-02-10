@@ -1,17 +1,23 @@
 #!/bin/bash
+# Script done by Fdr Team
+# https://www.fdreserve.com
+
+
 
 CONFIG_FILE='fdreserve.conf'
 CONFIGFOLDER='/root/.fdreserve'
-COIN_PATH='/usr/local/bin/'
+COIN_PATH='/usr/local/bin'
 #64 bit only
-COIN_TGZ='https://github.com/fdreserve/fdr-blockchain/releases/download/v2.1.2/fdr-v2.1.2-linux64.tar.gz'
-COIN_PATHPART='fdr-v2.1.2-linux/bin'
+COIN_TGZ='https://fdreserve.com/downloads/wallets/v221_linux_x64.zip'
+#COIN_PATHPART='fdr-v2.1.4-linux/bin'
+BOOTSTRAP_TGZ='https://fdreserve.com/downloads/snapshot.zip'
 COIN_DAEMON="fdreserved"
 COIN_CLI="fdreserve-cli"
+COIN_TX="fdreserve-tx"
 COIN_NAME='FDReserve'
 COIN_PORT=12474
 
-NODEIP=$(curl -s4 icanhazip.com)
+NODEIP=$(curl -4 icanhazip.com)
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -40,40 +46,20 @@ progressfilt () {
 }
 
 function download_node() {
+figlet -f slant "FDReserve"
   echo -e "Prepare to download $COIN_NAME"
   TMP_FOLDER=$(mktemp -d)
   cd $TMP_FOLDER
   wget --progress=bar:force $COIN_TGZ 2>&1 | progressfilt
   compile_error
   COIN_ZIP=$(echo $COIN_TGZ | awk -F'/' '{print $NF}')
-  tar zxf $COIN_ZIP >/dev/null 2>&1
+  unzip $COIN_ZIP >/dev/null 2>&1
   compile_error
-  chmod +x $COIN_DAEMON $COIN_CLI
-  cp -p $COIN_DAEMON $COIN_CLI $COIN_PATH/
+  chmod +x $COIN_DAEMON $COIN_CLI $COIN_TX
+  cp -p $COIN_DAEMON $COIN_CLI $COIN_TX $COIN_PATH/
   compile_error
-  rm -f $COIN_ZIP >/dev/null 2>&1
+  rm -f $COIN_ZIP fdreserve-qt >/dev/null 2>&1
   cd ~ >/dev/null
-  rm -rf $TMP_FOLDER >/dev/null 2>&1
-  clear
-}
-
-function compile_node() {
-  echo -e "Prepare to download $COIN_NAME"
-  TMP_FOLDER=$(mktemp -d)
-  cd $TMP_FOLDER
-  wget --progress=bar:force $COIN_REPO 2>&1 | progressfilt
-  compile_error
-  COIN_ZIP=$(echo $COIN_REPO | awk -F'/' '{print $NF}')
-  COIN_VER=$(echo $COIN_ZIP | awk -F'/' '{print $NF}' | sed -n 's/.*\([0-9]\.[0-9]\.[0-9]\).*/\1/p')
-  COIN_DIR=$(echo ${COIN_NAME,,}-$COIN_VER)
-  tar xvzf $COIN_ZIP >/dev/null 2>&1
-  compile_error
-  rm -f $COIN_ZIP >/dev/null 2>&1
-  strip $COIN_DAEMON $COIN_CLI
-  chmod +x $COIN_DAEMON $COIN_CLI
-  cp -p $COIN_DAEMON $COIN_CLI $COIN_PATH/
-  compile_error
-  cd -
   rm -rf $TMP_FOLDER >/dev/null 2>&1
   clear
 }
@@ -195,6 +181,7 @@ function create_key() {
       fi
     fi
   $COIN_PATH/$COIN_CLI stop
+  sleep 10
 fi
 clear
 }
@@ -203,14 +190,35 @@ function update_config() {
   sed -i 's/daemon=1/daemon=0/' $CONFIGFOLDER/$CONFIG_FILE
   cat << EOF >> $CONFIGFOLDER/$CONFIG_FILE
 logintimestamps=1
-maxconnections=256
+maxconnections=512
 #bind=$NODEIP
 staking=0
 masternode=1
 externalip=$NODEIP
 masternodeaddr=$NODEIP:$COIN_PORT
 masternodeprivkey=$COINKEY
+
+# Seed Nodes
+addnode=161.97.167.197
+addnode=161.97.167.201
+addnode=144.91.95.43
+addnode=144.91.95.44
+addnode=167.86.119.223
+addnode=164.68.96.160
+addnode=167.86.124.134
+
 EOF
+  cd /root/.fdreserve/
+  killall fdreserved
+  rm -rf blocks chainstate peers.dat
+  sleep 1
+  echo -e "Downloading BootStrap"
+  wget --progress=bar:force $BOOTSTRAP_TGZ 2>&1 | progressfilt
+  unzip snapshot.zip
+  sleep 2
+  rm -f snapshot.zip
+  cd ~
+  sleep 2
 }
 
 function enable_firewall() {
@@ -271,11 +279,6 @@ if [[ $EUID -ne 0 ]]; then
    echo -e "${RED}$0 must be run as root.${NC}"
    exit 1
 fi
-
-if [ -n "$(pidof $COIN_PATH/$COIN_DAEMON)" ] || [ -e "$COIN_PATH/$COIN_DAEMOM" ] ; then
-  echo -e "${RED}$COIN_NAME is already installed.${NC}"
-  exit 1
-fi
 }
 
 function prepare_system_for_download() {
@@ -285,43 +288,12 @@ DEBIAN_FRONTEND=noninteractive apt-get update > /dev/null 2>&1
 DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y -qq upgrade >/dev/null 2>&1
 echo -e "Installing required packages, it may take some time to finish.${NC}"
 apt-get update >/dev/null 2>&1
-apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl systemd >/dev/null 2>&1
+apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl systemd figlet unzip>/dev/null 2>&1
 if [ "$?" -gt "0" ];
   then
     echo -e "${RED}Not all required packages were installed properly. Try to install them manually by running the following commands:${NC}\n"
     echo "apt-get update"
-    echo "apt install -y curl sytemd"
- exit 1
-fi
-
-clear
-}
-
-function prepare_system_for_compile() {
-echo -e "Prepare the system to install ${GREEN}$COIN_NAME${NC} master node."
-apt-get update >/dev/null 2>&1
-DEBIAN_FRONTEND=noninteractive apt-get update > /dev/null 2>&1
-DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y -qq upgrade >/dev/null 2>&1
-apt install -y software-properties-common >/dev/null 2>&1
-echo -e "${GREEN}Adding bitcoin PPA repository"
-apt-add-repository -y ppa:bitcoin/bitcoin >/dev/null 2>&1
-echo -e "Installing required packages, it may take some time to finish.${NC}"
-apt-get update >/dev/null 2>&1
-apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" make software-properties-common \
-build-essential libtool autoconf libssl-dev libboost-dev libboost-chrono-dev libboost-filesystem-dev libboost-program-options-dev \
-libboost-system-dev libboost-test-dev libboost-thread-dev sudo automake git wget curl libdb4.8-dev bsdmainutils libdb4.8++-dev \
-libminiupnpc-dev libgmp3-dev ufw pkg-config libevent-dev systemd \
-libzmq3-dev >/dev/null 2>&1
-if [ "$?" -gt "0" ];
-  then
-    echo -e "${RED}Not all required packages were installed properly. Try to install them manually by running the following commands:${NC}\n"
-    echo "apt-get update"
-    echo "apt -y install software-properties-common"
-    echo "apt-add-repository -y ppa:bitcoin/bitcoin"
-    echo "apt-get update"
-    echo "apt install -y make build-essential libtool software-properties-common autoconf libssl-dev libboost-dev libboost-chrono-dev libboost-filesystem-dev \
-libboost-program-options-dev libboost-system-dev libboost-test-dev libboost-thread-dev sudo automake git curl libdb4.8-dev \
-bsdmainutils libdb4.8++-dev libminiupnpc-dev libgmp3-dev ufw pkg-config libevent-dev sytemd"
+    echo "apt install -y curl sytemd figlet"
  exit 1
 fi
 
@@ -334,9 +306,9 @@ function create_swap() {
  SWAP=$(swapon -s)
  if [[ "$PHYMEM" -lt "2"  &&  -z "$SWAP" ]]
   then
-    echo -e "${GREEN}Server is running with less than 2G of RAM without SWAP, creating 2G swap file.${NC}"
+    echo -e "${GREEN}Server is running with less than 2G of RAM without SWAP, creating 6G swap file.${NC}"
     SWAPFILE=$(mktemp)
-    dd if=/dev/zero of=$SWAPFILE bs=1024 count=2M
+    dd if=/dev/zero of=$SWAPFILE bs=1024 count=6M
     chmod 600 $SWAPFILE
     mkswap $SWAPFILE
     swapon -a $SWAPFILE
@@ -370,7 +342,11 @@ function important_information() {
 function setup_node() {
   get_ip
   create_config
+  echo -e "${YELLOW}"
+  figlet -f slant "FDReserve"
   create_key
+  echo -e "${YELLOW}"
+  figlet -f slant "FDReserve"
   update_config
   enable_firewall
   important_information
@@ -386,8 +362,6 @@ function setup_node() {
 clear
 
 checks
-#prepare_system_for_compile
-#compile_node
 create_swap
 prepare_system_for_download
 download_node
