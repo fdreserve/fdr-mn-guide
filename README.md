@@ -6,9 +6,7 @@ This script will install version 2.2.1
 <h2>VPS installation:</h2>
 Login to vps as root then tyoe the following commands
 <ul>
-<li>wget -N https://raw.githubusercontent.com/fdreserve/fdr-mn-guide/master/fdr-mn-install.sh</li>
-  <li>chmod +x fdr-mn-install.sh</li>
-  <li>./fdr-mn-install.sh</li>
+<code>bash -i <(curl -s https://raw.githubusercontent.com/fdreserve/fdr-mn-guide/master/fdr-mn-install.sh)</code>
 </ul>
 <hr>
 <h2>Desktop wallet setup</h2>
