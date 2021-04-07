@@ -2,8 +2,6 @@
 # Script done by Fdr Team
 # https://www.fdreserve.com
 
-
-
 CONFIG_FILE='fdreserve.conf'
 CONFIGFOLDER='/root/.fdreserve'
 COIN_PATH='/usr/local/bin'
@@ -268,14 +266,16 @@ fi
 }
 
 function detect_ubuntu() {
- if [[ $(lsb_release -d) == *18.04* ]]; then
+ if [[ $(lsb_release -d) == *20.04* ]]; then
+   UBUNTU_VERSION=20
+ elif [[ $(lsb_release -d) == *18.04* ]]; then
    UBUNTU_VERSION=18
  elif [[ $(lsb_release -d) == *16.04* ]]; then
    UBUNTU_VERSION=16
  elif [[ $(lsb_release -d) == *14.04* ]]; then
    UBUNTU_VERSION=14
 else
-   echo -e "${RED}You are not running Ubuntu 14.04, 16.04 or 18.04 Installation is cancelled.${NC}"
+   echo -e "${RED}You are not running Ubuntu 14.04, 16.04, 18.04 or 20.04 Installation is cancelled.${NC}"
    exit 1
 fi
 }
@@ -295,12 +295,12 @@ DEBIAN_FRONTEND=noninteractive apt-get update > /dev/null 2>&1
 DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y -qq upgrade >/dev/null 2>&1
 echo -e "Installing required packages, it may take some time to finish.${NC}"
 apt-get update >/dev/null 2>&1
-apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl systemd figlet unzip>/dev/null 2>&1
+apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl systemd figlet unzip net-tools >/dev/null 2>&1
 if [ "$?" -gt "0" ];
   then
     echo -e "${RED}Not all required packages were installed properly. Try to install them manually by running the following commands:${NC}\n"
     echo "apt-get update"
-    echo "apt install -y curl sytemd figlet"
+    echo "apt install -y curl systemd figlet unzip net-tools"
  exit 1
 fi
 
@@ -331,7 +331,7 @@ function important_information() {
  echo -e "================================================================================"
  echo -e "$COIN_NAME Masternode is up and running listening on port ${RED}$COIN_PORT${NC}."
  echo -e "Configuration file is: ${RED}$CONFIGFOLDER/$CONFIG_FILE${NC}"
- if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 18 )); then
+ if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 20 )); then
    echo -e "Start: ${RED}systemctl start $COIN_NAME.service${NC}"
    echo -e "Stop: ${RED}systemctl stop $COIN_NAME.service${NC}"
    echo -e "Status: ${RED}systemctl status $COIN_NAME.service${NC}"
@@ -357,7 +357,7 @@ function setup_node() {
   update_config
   enable_firewall
   important_information
-  if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 18 )); then
+  if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 20 )); then
     configure_systemd
   else
     configure_startup
