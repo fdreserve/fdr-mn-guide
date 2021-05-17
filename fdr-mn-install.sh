@@ -357,7 +357,7 @@ function setup_node() {
   update_config
   enable_firewall
   important_information
-  if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 20 )); then
+  if (( $UBUNTU_VERSION == 16 || $UBUNTU_VERSION == 20 || $UBUNTU_VERSION == 20 )); then
     configure_systemd
   else
     configure_startup
